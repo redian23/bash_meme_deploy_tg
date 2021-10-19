@@ -36,10 +36,9 @@ deploy(){
 }
 
 multi_deploy(){
-    steams_list=${config_files[@]}
-    for stream in $steams_list
+    for stream in "${config_files[@]}"
     do
-       echo $srteam | xargs -P 4 -n 1 deploy 
+       deploy $stream | xargs -P 4 -n 1
     done
 }
 

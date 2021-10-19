@@ -1,12 +1,12 @@
 #!/bin/bash 
-
+work_path=$(echo -e `pwd`)
 config_folder="/etc/meme-deploy"
-source ~/sample-credits.conf
+source $work_path/sample-credits.conf
 
 user=$USER
-mkdir $config_folder
-cp ~/sample-credits.conf $config_folder/$user-credits.conf
-cp ~/meme_deploy.sh /usr/bin/meme_deploy.sh 
+sudo mkdir $config_folder
+sudo cp $work_path/sample-credits.conf $config_folder/$user-credits.conf
+sudo cp $work_path/meme_deploy.sh /usr/bin/meme_deploy.sh 
 
 
 sudo echo '[Unit]
