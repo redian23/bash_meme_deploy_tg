@@ -26,10 +26,10 @@ deploy(){
         curl -s https://api.telegram.org/bot${BotToken}/sendphoto -F "chat_id=$CHAT_ID" -F "photo=@$meme_folder/$meme_num" > /dev/null && \
         echo "${date} Meme ${meme_num} Succsess send to ${channal_name}" | tee -a $log_file
 
-        if [ $1 == "${config_files[-1]}" ];
-        then
-            mv $meme_folder/$meme_num $meme_folder/posted/ && \
-            echo "${date} Meme ${meme_num} moved on 'posted' folder" | tee -a $log_file
+
+        if [ $1 == "${config_files[-1]}" ];then
+                mv $meme_folder/$meme_num $meme_folder/posted/ && \
+                echo "${date} Meme ${meme_num} moved on 'posted' folder" | tee -a $log_file
         fi
 
         local wait_time=$(shuf -i 45-60 -n 1)

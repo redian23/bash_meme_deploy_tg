@@ -8,7 +8,6 @@ sudo mkdir $config_folder
 sudo cp $work_path/sample-credits.conf $config_folder/$user-credits.conf
 sudo cp $work_path/meme_deploy.sh /usr/bin/meme_deploy.sh 
 
-
 sudo echo '[Unit]
 Description=Meme deploy script ot Telegramm public_chanal
 
