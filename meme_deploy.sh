@@ -6,19 +6,31 @@ config_files=($(ls /etc/meme-deploy/*.conf | awk {'print $1'}))
 
 log_file=/var/log/meme-deploy.log
 
-scan_meme_folder(){
+check_meme_folder(){
     memes_list=($(ls $meme_folder | awk {'print $1'}))
-    #echo "${memes_list[@]}"
+    #echo "${memes_list[@]}" 
 
-    if [ -d "${meme_folder}/posted/" ];
-    then
-        echo "Direcrory '/posted' exist!"
-    else
-        mkdir ${meme_folder}/posted/
-    fi
+    #check meme_folder exist or not
+    [ -d "${meme_folder}/posted/" ] || mkdir ${meme_folder}/posted/
+
+    #check meme_folder empty or not
+    [ "$(ls -A ${meme_folder}/posted/)" ] || send_emergency_alert
 }
 
-sent_to_tg(){
+send_emergency_alert(){
+    local date=$(date '+%d/%m/%Y-%H:%M:%S')
+    source $1
+    CHAT_ID=$admin_id
+
+    for meme_num in ${memes_list[@]}
+    do
+        curl -s --data "text=💥MEME FOLDER IS EMPTY💥" --data "chat_id=$CHAT_ID" 'https://api.telegram.org/bot'${BotToken}'/sendMessage' > /dev/null \
+        echo "${date} Meme folder is EMPTY ${channal_name}" | tee -a $log_file
+        break
+    done
+}
+
+send_to_tg(){
     local date=$(date '+%d/%m/%Y-%H:%M:%S')
 
     source $1
@@ -39,7 +51,7 @@ move_to_posted(){
     fi
 }
 
-run_scheduler(){
+run_timer(){
     local date=$(date '+%d/%m/%Y-%H:%M:%S')
     local wait_time=$(shuf -i 45-60 -n 1)
 
@@ -47,18 +59,18 @@ run_scheduler(){
     sleep ${wait_time}m
 }
 
-multi_senting(){
+multi_sending(){
     for stream in "${config_files[@]}"
     do
-        sent_to_tg $stream
+        send_to_tg $stream
     done
 }
 
 echo "Meme Deploy Run ^-^"
 while :
 do
-    scan_meme_folder
-    multi_senting
+    check_meme_folder
+    multi_sending
     move_to_posted
-    run_scheduler
+    run_timer
 done
