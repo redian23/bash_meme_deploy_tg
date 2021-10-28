@@ -7,11 +7,12 @@ log_file=/var/log/meme-deploy.log
 
 check_meme_folder(){
     source $1
-    memes_list=($(ls $meme_folder | awk {'print $1'}))
-    #echo "${memes_list[@]}"
+    meme_list=($(ls $meme_folder | awk {'print $1'}))
+
+    #echo "${meme_list[@]}"
 
     #check meme_folder empty or not
-    [ "$(ls -A ${meme_folder}/*.jpg)" ] || send_emergency_alert $1
+    [ "$(ls -A ${meme_folder}/*.jpg)" ] || send_emergency_alert $1 && \
 
     #check meme_folder exist or not
     [ -d "${meme_folder}/posted/" ] || mkdir ${meme_folder}/posted/
@@ -22,15 +23,15 @@ send_emergency_alert(){
     source $1
     CHAT_ID=$admin_id
 
-    curl -s --data "text=💥MEME FOLDER <${meme_folder}> IS EMPTY for ${channal_name}💥" --data "chat_id=$CHAT_ID" 'https://api.telegram.org/bot'${BotToken}'/sendMessage' > /dev/null \
-    echo "${date} Meme folder is EMPTY for ${channal_name}" | tee -a $log_file
+    curl -s --data "text=💥 FOLDER <${meme_folder}> IS EMPTY for ${channal_name}💥" --data "chat_id=$CHAT_ID" 'https://api.telegram.org/bot'${BotToken}'/sendMessage' > /dev/null && \
+    echo "${date} Folder is EMPTY for ${channal_name}" | tee -a $log_file
 }
 
-send_to_tg(){
+send_image_to_tg(){
     local date=$(date '+%d/%m/%Y-%H:%M:%S')
     source $1
 
-    for meme_num in ${memes_list[@]}
+    for meme_num in ${meme_list[@]}
     do
         curl -s https://api.telegram.org/bot${BotToken}/sendphoto -F "chat_id=$CHAT_ID" -F "photo=@$meme_folder/$meme_num" > /dev/null && \
         echo "${date} Meme ${meme_num} Succsess send to ${channal_name}" | tee -a $log_file
@@ -38,13 +39,36 @@ send_to_tg(){
     done
 }
 
+send_document_to_tg(){
+    #Beta func
+    local date=$(date '+%d/%m/%Y-%H:%M:%S')
+    source $1
+
+    for document_num in ${document_list[@]}
+    do
+        curl -F document=@"${document_num}" https://api.telegram.org/bot${BotToken}/sendDocument?chat_id=$CHAT_ID && \
+        echo "${date} Document $document_num Succsess send to ${channal_name}" | tee -a $log_file
+    done
+}
+
+send_video_to_tg(){
+    #Beta func
+    local date=$(date '+%d/%m/%Y-%H:%M:%S')
+    source $1
+
+    for video_num in ${video_list[@]}
+    do
+        curl -F video=@"${video_num}" https://api.telegram.org/bot${BotToken}/sendVideo?chat_id=$CHAT_ID  && \
+        echo "${date} Video $video_num Succsess send to ${channal_name}" | tee -a $log_file
+    done
+}
+
 move_to_posted(){
     local date=$(date '+%d/%m/%Y-%H:%M:%S')
+    source $1
 
-    if [ $stream == "${config_files[-1]}" ];then
-        mv $meme_folder/$meme_num $meme_folder/posted/ && \
-        echo "${date} Meme ${meme_num} moved on 'posted' folder" | tee -a $log_file
-    fi
+    mv $meme_folder/$meme_num $meme_folder/posted/ && \
+    echo "${date} Meme ${meme_num} moved on 'posted' folder" | tee -a $log_file
 }
 
 run_timer(){
@@ -59,7 +83,8 @@ multi_sending(){
     for stream in "${config_files[@]}"
     do
         check_meme_folder $stream
-        send_to_tg $stream
+        send_image_to_tg $stream
+        move_to_posted $stream
     done
 }
 
@@ -67,6 +92,5 @@ echo "Meme Deploy Run ^-^"
 while :
 do
     multi_sending
-    move_to_posted
     run_timer
 done
