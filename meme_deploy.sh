@@ -3,18 +3,18 @@ work_path=$(echo -e `pwd`)
 
 source /etc/meme-deploy/*
 config_files=($(ls /etc/meme-deploy/*.conf | awk {'print $1'}))
-
 log_file=/var/log/meme-deploy.log
 
 check_meme_folder(){
+    source $1
     memes_list=($(ls $meme_folder | awk {'print $1'}))
-    #echo "${memes_list[@]}" 
+    #echo "${memes_list[@]}"
+
+    #check meme_folder empty or not
+    [ "$(ls -A ${meme_folder}/*.jpg)" ] || send_emergency_alert $1
 
     #check meme_folder exist or not
     [ -d "${meme_folder}/posted/" ] || mkdir ${meme_folder}/posted/
-
-    #check meme_folder empty or not
-    [ "$(ls -A ${meme_folder}/posted/)" ] || send_emergency_alert
 }
 
 send_emergency_alert(){
@@ -22,18 +22,14 @@ send_emergency_alert(){
     source $1
     CHAT_ID=$admin_id
 
-    for meme_num in ${memes_list[@]}
-    do
-        curl -s --data "text=💥MEME FOLDER IS EMPTY💥" --data "chat_id=$CHAT_ID" 'https://api.telegram.org/bot'${BotToken}'/sendMessage' > /dev/null \
-        echo "${date} Meme folder is EMPTY ${channal_name}" | tee -a $log_file
-        break
-    done
+    curl -s --data "text=💥MEME FOLDER <${meme_folder}> IS EMPTY for ${channal_name}💥" --data "chat_id=$CHAT_ID" 'https://api.telegram.org/bot'${BotToken}'/sendMessage' > /dev/null \
+    echo "${date} Meme folder is EMPTY for ${channal_name}" | tee -a $log_file
 }
 
 send_to_tg(){
     local date=$(date '+%d/%m/%Y-%H:%M:%S')
-
     source $1
+
     for meme_num in ${memes_list[@]}
     do
         curl -s https://api.telegram.org/bot${BotToken}/sendphoto -F "chat_id=$CHAT_ID" -F "photo=@$meme_folder/$meme_num" > /dev/null && \
@@ -62,6 +58,7 @@ run_timer(){
 multi_sending(){
     for stream in "${config_files[@]}"
     do
+        check_meme_folder $stream
         send_to_tg $stream
     done
 }
@@ -69,7 +66,6 @@ multi_sending(){
 echo "Meme Deploy Run ^-^"
 while :
 do
-    check_meme_folder
     multi_sending
     move_to_posted
     run_timer
