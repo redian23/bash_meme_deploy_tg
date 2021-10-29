@@ -5,14 +5,6 @@ source /etc/meme-deploy/*
 config_files=($(ls /etc/meme-deploy/*.conf | awk {'print $1'}))
 log_file=/var/log/meme-deploy.log
 
-if [[ "$1" == -m || "$1" == --messange ]]; 
-then
-    text_messange=$2
-    
-    curl -s --data "${text_messange}" \
-            --data "chat_id=${CHAT_ID}" 'https://api.telegram.org/bot'${BotToken}'/sendMessage' > /dev/null 
-fi
-
 check_meme_folder(){
     source $1
     meme_list=($(ls $meme_folder | grep -v 'posted'))
@@ -58,6 +50,7 @@ send_to_tg(){
         break
     done
 }
+
 move_to_posted(){
     local date=$(date '+%d/%m/%Y-%H:%M:%S')
     source $1
