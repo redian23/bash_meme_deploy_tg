@@ -1,33 +1,33 @@
 #!/bin/bash
-work_path=$(echo -e `pwd`)
-
 source /etc/meme-deploy/*
-config_files=($(ls /etc/meme-deploy/*.conf | awk {'print $1'}))
+
+### variables
 log_file=/var/log/meme-deploy.log
+send_info=/tmp/send_info.log
 
 check_meme_folder(){
     source $1
-    meme_list=($(ls $meme_folder | grep -v 'posted'))
+    meme_list=($(ls -p $meme_folder | grep -v / | head -n 10))
     #echo "${meme_list[@]}"
 
     #check meme_folder empty or not
-    [ "$(ls -A ${meme_folder}/*.jpg)" ] || send_emergency_alert $1 && \
-
+    [ "$(ls -A ${meme_folder}/*.jpg)" ] || alert_message="💥FOLDER <${meme_folder}> IS EMPTY for ${channal_name}💥" send_alert $1
+ 
     #check meme_folder exist or not
     [ -d "${meme_folder}/posted/" ] || mkdir ${meme_folder}/posted/
 }
 
-send_emergency_alert(){
+send_alert(){
     local date=$(date '+%d/%m/%Y-%H:%M:%S')
     source $1
     CHAT_ID=$admin_id
 
-    curl -s --data "text=💥FOLDER <${meme_folder}> IS EMPTY for ${channal_name}💥" \
+    curl -s --data "text=${alert_message}" \
             --data "chat_id=${CHAT_ID}" 'https://api.telegram.org/bot'${BotToken}'/sendMessage' > /dev/null && \
-    echo "${date} Folder is EMPTY for ${channal_name}" | tee -a $log_file
+    echo "${date} ${alert_message}" | tee -a $log_file
 }
 
-send_to_tg(){
+send_file_to_tg(){
     local date=$(date '+%d/%m/%Y-%H:%M:%S')
     source $1
 
@@ -36,17 +36,13 @@ send_to_tg(){
         if [[ $(echo ${meme_num} | grep -c '.jpg') == "1" || $(echo ${meme_num} | grep -c '.png') == "1" || $(echo ${meme_num} | grep -c '.jpeg') == "1" ]];
         then
             #-F caption="$(date)"
-            curl -s https://api.telegram.org/bot${BotToken}/sendphoto -F "chat_id=${CHAT_ID}" -F "photo=@${meme_folder}/${meme_num}" > /dev/null && \
-            echo "${date} Meme ${meme_num} Succsess send to ${channal_name}" | tee -a $log_file
-
+            curl -s https://api.telegram.org/bot${BotToken}/sendphoto -F "chat_id=${CHAT_ID}" -F "photo=@${meme_folder}/${meme_num}" > $send_info
         elif [[ $(echo ${meme_num} | grep -c '.mp4') == "1" || $(echo ${meme_num} | grep -c '.mov') == "1" ]];
         then
-            curl -s -F video=@"$meme_folder/${meme_num}" https://api.telegram.org/bot${BotToken}/sendVideo?chat_id=${CHAT_ID}  && \
-            echo "${date} Video ${meme_num} Succsess send to ${channal_name}" | tee -a $log_file
+            curl -s -F video=@"$meme_folder/${meme_num}" https://api.telegram.org/bot${BotToken}/sendVideo?chat_id=${CHAT_ID} > $send_info
         else
-            curl -s -F document=@"$meme_folder/${meme_num}" https://api.telegram.org/bot${BotToken}/sendDocument?chat_id=${CHAT_ID} && \
-            echo "${date} Document ${meme_num} Succsess send to ${channal_name}" | tee -a $log_file
-        fi
+            curl -s -F document=@"$meme_folder/${meme_num}" https://api.telegram.org/bot${BotToken}/sendDocument?chat_id=${CHAT_ID} > $send_info
+         fi
         break
     done
 }
@@ -68,11 +64,21 @@ run_timer(){
 }
 
 multi_sending(){
+    local date=$(date '+%d/%m/%Y-%H:%M:%S')
+    config_files=($(ls /etc/meme-deploy.d/*.conf | awk {'print $1'}))
+
     for stream in "${config_files[@]}"
     do
         check_meme_folder $stream
-        send_to_tg $stream
-        move_to_posted $stream
+        send_file_to_tg $stream
+
+        if [[ `cat $send_info | grep -o -c "Not Found"` == "1" || `cat $send_info | grep -o -c "Bad Request"` == "1" ]];
+        then
+            echo "${date} [WARN] File not moved"
+        else
+            echo "${date} File ${meme_num} Succsess send to ${channal_name}" | tee -a $log_file
+            move_to_posted $stream
+        fi
     done
 }
 
