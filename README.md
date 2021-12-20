@@ -7,7 +7,7 @@
 3. (Optional) remove git clone folder
 
 ## To add more credint's (config files)
-1. cd /etc/meme-deploy/
+1. cd /etc/meme-deploy.d/
 2. Copy first configure file 
 3. Edit copied configure file & Save
 
