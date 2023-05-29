@@ -1,5 +1,5 @@
 #!/bin/bash
-source /etc/meme-deploy/*
+source /etc/meme-deploy.d/*
 
 ### variables
 log_file=/var/log/meme-deploy.log
